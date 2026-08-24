@@ -1,0 +1,27 @@
+{
+  "name": "eve-map-assistant-dsh",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness (DSH) profile bundle for the EVE Static Map Planner MCP bridge. Injects one stdio MCP client (id: mcp-eve-map) that spawns eve-map-mcp.exe from PATH and surfaces map tools to the model as mcp__evemap__*.",
+  "keywords": [
+    "dsh",
+    "dsh-bundle",
+    "eve",
+    "eve-static-map-planner",
+    "mcp"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=20"
+  }
+}
