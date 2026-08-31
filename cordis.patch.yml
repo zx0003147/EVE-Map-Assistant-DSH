@@ -1,4 +1,4 @@
-# EVE Map Assistant - DSH profile bundle patch layer.
+# EVE Map Assistant - DSH profile bundle patch layer (v0.2.0).
 #
 # This file is the bundle's exported patch (package.json -> dsh.bundle.patch).
 # It is applied automatically as one layer of the target profile when this
@@ -6,20 +6,23 @@
 # add` does for any dependency that declares `dsh.bundle`). No manual edit of
 # the profile's own cordis.patch.yml is required.
 #
-# Effect: mount one @deepseek-ai/dsh-mcp-client stdio instance that spawns the
-# MCP server already installed on the user PATH by the EVE Static Map Planner
-# MSI (`eve-map-mcp.exe`, discovered through its own control lookup - no args,
-# no fixed URL/port). Map tools surface to the model as `mcp__evemap__*`.
-#
-# Everything here is deliberately portable:
-#   - no absolute executable path (command is a bare PATH-resolved name)
-#   - no user name, no localhost port, no token/session key/control secret
-#   - no HTTP transport, no shell wrapper
+# Compatibility: EVE Map Assistant Plugin 0.5.1 / EVE Static Map Planner 1.0.0
+# expose the secure MCP bridge over a fixed localhost HTTP (streamable-http)
+# endpoint at http://127.0.0.1:27892/mcp. The legacy STDIO bridge executable
+# (eve-map-mcp.exe) is no longer installed by the planner, so this layer uses
+# the HTTP transport instead. Map tools surface to the model as
+# `mcp__eve-static-map__*` (the mcp__<serverName>__<rawName> naming scheme of
+# @deepseek-ai/dsh-mcp-client), matching the plugin's canonical server name.
 
 - insert:
     - id: mcp-eve-map
       name: '@deepseek-ai/dsh-mcp-client'
       config:
-        serverName: evemap
-        transport: stdio
-        command: eve-map-mcp.exe
+        serverName: eve-static-map
+        transport: streamable-http
+        url: http://127.0.0.1:27892/mcp
+        reconnect:
+          enabled: true
+          initialDelayMs: 500
+          maxDelayMs: 30000
+          maxAttempts: 10

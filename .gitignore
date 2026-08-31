@@ -1,22 +1,10 @@
-# Node
+# dependencies
 node_modules/
 
-# Packed tarballs produced by `pnpm pack` during install
+# generated artifacts
 *.tgz
+*.out.txt
+*.err.txt
 
-# Scratch / test artifacts
-.scratch/
-
-# Local installer backups (created when -DshHome points into this repo)
-*.bak
-*.bak-*
-
-# Editor/OS noise
-.idea/
-.vscode/
-*.user
-Thumbs.db
-.DS_Store
-
-# Local dsh dump captures used for verification
-dump*.txt
+# scratch / local analysis
+_scratch/
