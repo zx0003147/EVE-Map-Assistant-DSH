@@ -1,13 +1,13 @@
 ---
 name: eve-map-assistant
-description: Plan, inspect, and visualize EVE Online systems, routes, jump ranges, temporary Missions, and permission-gated Saved Markers through EVE Static Map Planner. Use for map-assistant requests; do not use as a general EVE encyclopedia or for fleet-message parsing.
+description: Plan, inspect, and visualize EVE Online systems, routes, jump ranges, temporary Wormholes, temporary Missions, and permission-gated Saved Markers through EVE Static Map Planner. Use for map-assistant requests; do not use as a general EVE encyclopedia or for fleet-message parsing.
 ---
 
 # EVE Map Assistant
 
 Use only the `mcp__eve-static-map__*` MCP tools for map facts, current AI-owned map state, and map actions. Never fall back to PowerShell, cmd, bash, filesystem access, SQLite, curl, arbitrary HTTP, or remembered EVE data. Make the smallest tool chain that can answer the request, and reuse canonical system IDs returned earlier in the same conversation.
 
-If the tools are unavailable, tell the user to start EVE Static Map Planner 1.0.0 or later, enable **Preferences > AI Control**, and open a new AI task. Do not expose HTTP, PATH, launchers, credentials, or MCP setup to ordinary users. If a tool reports an error, report the real result and do not claim success.
+If the tools are unavailable, tell the user to start EVE Static Map Planner 1.1.0 or later, enable **Preferences > AI Control**, and open a new AI task. Do not expose HTTP, PATH, launchers, credentials, or MCP setup to ordinary users. If a tool reports an error, report the real result and do not claim success.
 
 ## Tool contract and ownership
 
@@ -17,6 +17,7 @@ The MCP server publishes the following tools (in DSH they are named `mcp__eve-st
 search_system
 get_system_info
 get_system_markers
+list_wormholes
 calculate_normal_route
 calculate_capital_route
 list_views
@@ -29,6 +30,7 @@ get_active_missions
 get_mission
 begin_mission
 focus_system
+create_wormhole
 show_normal_route
 show_capital_route
 remove_mission_route
@@ -44,9 +46,9 @@ clear_mission
 create_saved_marker
 ```
 
-Do not invent tools. Read tools are `search_system`, `get_system_info`, `get_system_markers`, both `calculate_*_route` tools, `list_views`, `get_current_view`, `get_active_missions`, and `get_mission`. All others change map or marker state.
+Do not invent tools. Read tools are `search_system`, `get_system_info`, `get_system_markers`, `list_wormholes`, both `calculate_*_route` tools, `list_views`, `get_current_view`, `get_active_missions`, and `get_mission`. `create_wormhole` changes global session topology. All remaining tools change View, Mission, viewport, or marker state.
 
-A Mission is AI-owned visual state attached to one stable View ID and restored by the map across restarts. Mission tools never mutate user routes, user jump ranges, user markers, Ansiblex data, preferences, or the EVE client. Calculating or displaying a route never authorizes **Send Draft to EVE** or **Set EVE Destination**; those remain explicit manual actions in the app.
+Planning Views and AI Missions are session-only. A Mission is AI-owned visual state attached to one stable View ID for the current application session; it is not restored after Map Planner exits. Mission tools never mutate user routes, user jump ranges, user markers, Ansiblex data, Wormhole topology, preferences, or the EVE client. Calculating or displaying a route never authorizes **Send Draft to EVE** or **Set EVE Destination**; those remain explicit manual actions in the app.
 
 ## View resolution
 
@@ -69,15 +71,37 @@ The catalog does not expose the currently selected system or user-owned route dr
 - A lookup such as “Jita 在哪？” normally needs only `search_system`. Add `get_system_info` when the user asks for region, constellation, security, coordinates, gates, or other system details.
 - Use `focus_system` only when the user explicitly asks to focus, center, locate, or show one system on the map. A search alone does not change the viewport.
 
+## Wormhole topology
+
+Wormhole connections are temporary, bidirectional, global application-session topology. Every Planning View shares the same connections, but each View keeps its own `useWormholes` preference. Wormholes are not Mission-owned or View-owned and disappear when Map Planner exits.
+
+AI Wormhole capability is deliberately limited:
+
+- READ: use `list_wormholes` to query the current topology.
+- CREATE: use `create_wormhole` to add one connection.
+- NOT AVAILABLE: remove, delete, clear, replace, edit, update, or persist a Wormhole connection.
+
+For “Add a Wormhole from A to B,” resolve each endpoint once with `search_system`, then call `create_wormhole(fromSystemId, toSystemId)`. Do not call `begin_mission`, `switch_view`, or `focus_system`; creating topology does not require or authorize any of them. A→B and B→A are the same bidirectional connection. If `create_wormhole` returns `already_exists`, report normally that the connection already exists; do not treat it as a serious error or retry it in reverse.
+
+For “What Wormholes are on the map?”, call `list_wormholes`. For a system-specific question, resolve the system when needed, call `list_wormholes`, and filter the returned endpoints. Current Wormhole topology comes only from the map tools, never chat memory or EVE background knowledge.
+
+If the user asks to remove one or clear all Wormholes, do not invent `remove_wormhole`, use a Mission mutation, or substitute any other tool. Say: “AI cannot remove Wormhole connections. Remove it manually in Wormhole Manager or the system right-click menu.”
+
 ## Route intent
 
-An unqualified route or “how do I get from A to B?” means a normal route. Explicit normal, stargate, or Ansiblex wording also selects normal routing. Use capital routing only when the user explicitly says capital, jump route, or equivalent. Capital routing requires an explicit effective range in light-years; ask for it when absent. Normal routing defaults `useAnsiblex` to `false` unless the user asks to include Ansiblex.
+An unqualified route or “how do I get from A to B?” means a normal route. Explicit normal, stargate, Ansiblex, or Wormhole wording also selects normal routing. Use capital routing only when the user explicitly says capital, jump route, or equivalent. Capital routing requires an explicit effective range in light-years; ask for it when absent.
+
+For both `calculate_normal_route` and `show_normal_route`, default `useAnsiblex=false` and `useWormholes=false`. Set either option to `true` only when the user explicitly asks for that edge type. “Allow jump bridges” means `useAnsiblex=true, useWormholes=false`; “use current Wormholes” means `useAnsiblex=false, useWormholes=true`; “use jump bridges and Wormholes” means both are `true`. “Do not use Wormholes” keeps `useWormholes=false`. Never assume an unqualified route should use every current Wormhole.
+
+Normal-route results report `wormholeJumps` alongside Stargate and Ansiblex jump counts. Use that returned value when explaining whether or how much a route used Wormholes; never infer it from the endpoint list alone.
 
 Keep calculation separate from display:
 
 - “Calculate”, “check”, “how many jumps”, “how do I get there?”, or “do not display” is query-only: resolve endpoints, then call one matching `calculate_*_route`. Do not create a Mission.
 - “Show”, “draw”, “put on the map”, or “navigate on the map” authorizes display: resolve endpoints, create or select the intended Mission, then call one matching `show_*_route`.
 - Do not call both calculate and show for the same request; `show_*_route` already calculates the displayed route.
+
+`show_normal_route(... useWormholes=true)` may display a Mission-owned route that uses current global Wormhole topology, but the Wormhole itself does not become part of the Mission. If the user later removes that Wormhole in the map UI, Map Planner removes affected Mission Normal Routes across Views. Do not assume a previously displayed route remains valid after topology changes.
 
 ## Mission workflow
 
@@ -116,6 +140,10 @@ Use `get_system_markers` for marker queries and distinguish the persistent Saved
 - “Jita 的安全等级和星门数？” → `search_system` → `get_system_info`.
 - “Jita 到 Amarr 怎么走？” → resolve both → `calculate_normal_route`.
 - “把 Jita 到 Amarr 画在地图上” → resolve both → `begin_mission` when needed → `show_normal_route`.
+- “现在有哪些虫洞？” → `list_wormholes`.
+- “加一条 1DQ1-A 到 NOL-M9 的虫洞” → resolve both → `create_wormhole`.
+- “用跳桥和虫洞算 A 到 B” → resolve both → `calculate_normal_route(useAnsiblex=true, useWormholes=true)`.
+- “删除 A 和 B 的虫洞” → no tool call; explain manual removal in Wormhole Manager or the system right-click menu.
 - “地图现在有什么 AI 路线？” → `get_active_missions` → relevant `get_mission` calls.
 - “Scout View 里有什么 AI 路线？” → `list_views` → `get_active_missions(viewId)` → relevant `get_mission` calls.
 - “新建一个 Scout View” → `create_view(label=Scout)`.
