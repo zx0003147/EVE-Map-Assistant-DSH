@@ -1,4 +1,4 @@
-# EVE Map Assistant - DSH profile bundle patch layer (v0.3.0).
+# EVE Map Assistant - DSH profile bundle patch layer (v0.4.0).
 #
 # This file is the bundle's exported patch (package.json -> dsh.bundle.patch).
 # It is applied automatically as one layer of the target profile when this
@@ -6,16 +6,16 @@
 # add` does for any dependency that declares `dsh.bundle`). No manual edit of
 # the profile's own cordis.patch.yml is required.
 #
-# Compatibility: EVE Map Assistant Plugin 0.6.0 / EVE Static Map Planner 1.1.0
+# Compatibility: EVE Map Assistant Plugin 0.7.0 / EVE Static Map Planner 1.2.0
 # expose the secure MCP bridge over a fixed localhost HTTP (streamable-http)
 # endpoint at http://127.0.0.1:27892/mcp. The legacy STDIO bridge executable
 # (eve-map-mcp.exe) is no longer installed by the planner, so this layer uses
 # the HTTP transport instead. The planner serves its full tool catalog over
-# this endpoint (30 tools incl. list_wormholes/create_wormhole and the
-# useWormholes route options) — the client discovers them automatically. Map
-# tools surface to the model as `mcp__eve-static-map__*` (the
-# mcp__<serverName>__<rawName> naming scheme of @deepseek-ai/dsh-mcp-client),
-# matching the plugin's canonical server name.
+# this endpoint (32 tools incl. Wormholes, ordered Waypoint route options, and
+# authorized Mission navigation sending to EVE) — the client discovers them
+# automatically. Map tools surface to the model as `mcp__eve-static-map__*`
+# (the mcp__<serverName>__<rawName> naming scheme of
+# @deepseek-ai/dsh-mcp-client), matching the plugin's canonical server name.
 
 - insert:
     - id: mcp-eve-map

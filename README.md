@@ -1,35 +1,40 @@
 # eve-map-assistant-dsh
 
 A **DeepSeek Harness (DSH) profile bundle** for the **EVE Static Map Planner**
-MCP bridge, compatible with **EVE Map Assistant Plugin 0.6.0** and
-**EVE Static Map Planner 1.1.0+**.
+MCP bridge, compatible with **EVE Map Assistant Plugin 0.7.0** and
+**EVE Static Map Planner 1.2.0+**.
 
 It is a pure patch-layer package: installing it adds **one** streamable-http
 MCP client (`id: mcp-eve-map`) to a DSH profile, pointing at the planner's
 fixed localhost endpoint `http://127.0.0.1:27892/mcp`, and surfaces map tools
-to the model as `mcp__eve-static-map__*` (30 tools: system search/info,
-normal/capital routes, temporary Wormholes, Views, temporary AI Missions, and
-permission-gated Saved Markers).
+to the model as `mcp__eve-static-map__*` (32 tools: system search/info,
+Waypoint-aware normal/capital routes, temporary Wormholes, Views, temporary AI
+Missions, permission-gated Saved Markers, and explicit Mission navigation
+sending to EVE).
 
 ```
 DSH
 → @deepseek-ai/dsh-mcp-client   (the row this bundle inserts)
 → streamable-http (http://127.0.0.1:27892/mcp)
-→ EVE Static Map Planner 1.1.0+ (AI Control enabled)
+→ EVE Static Map Planner 1.2.0+ (AI Control enabled)
 ```
 
-## Why this version (0.3.0)
+## Why this version (0.4.0)
 
-Plugin **0.6.0** adds **Wormhole assistant workflows**: the planner now serves
-`list_wormholes` and `create_wormhole`, and both normal-route tools accept
-`useWormholes` (returning `wormholeJumps`). Views and AI Missions are
-session-only in planner 1.1.0. This bundle needs no config change — the
-planner serves its full 30-tool catalog over the same HTTP endpoint and the
-MCP client discovers it automatically — but the bundled skill is updated so
-agents follow the new rules (list/create only, never remove Wormholes, route
-edge options only on explicit request). Version 0.2.0 was the HTTP-transport
-migration that replaced the legacy STDIO bridge (`eve-map-mcp.exe`, which the
-planner MSI no longer installs).
+Plugin **0.7.0** adds **waypoint-aware navigation guidance** and **authorized
+EVE navigation sending**: every route tool accepts an ordered
+`waypointSystemIds` list (one atomic call, never split into legs), and two new
+tools — `list_eve_navigation_targets` and
+`send_mission_navigation_to_eve` — replace one explicitly selected character's
+EVE navigation with an identified Mission Normal route's stored Waypoints plus
+optional Destination (manual drafts and Capital routes are structurally
+prohibited; sending happens only after an explicit user request and character
+choice). This bundle needs no config change — the planner serves its full
+32-tool catalog over the same HTTP endpoint and the MCP client discovers it
+automatically — but the bundled skill is updated so agents follow the new
+rules. Earlier versions: 0.3.0 added the Wormhole workflows (planner 1.1.0);
+0.2.0 was the HTTP-transport migration that replaced the legacy STDIO bridge
+(`eve-map-mcp.exe`, which the planner MSI no longer installs).
 
 ## Install
 
@@ -67,9 +72,11 @@ anything.
 
 ### Prerequisites
 
-- **EVE Static Map Planner 1.1.0 or later**, running with
+- **EVE Static Map Planner 1.2.0 or later**, running with
   **Preferences > AI Control** enabled. Saved Marker reads/creates
   additionally need **Preferences > AI Control > Saved Marker Access**.
+  Sending a Mission route to EVE needs the connected character/ESI setup in
+  the planner.
 - A working DSH installation (>= 0.1.1-rc.2) with a profile (default `web`).
 - `pnpm` and `git` available on PATH (used by `dsh plugin add` and the
   installer), plus Node.js.
@@ -95,18 +102,21 @@ absolute paths or credentials anywhere in the configuration.
 
 ## Using the tools
 
-1. Start EVE Static Map Planner 1.1.0+ and enable **AI Control**.
+1. Start EVE Static Map Planner 1.2.0+ and enable **AI Control**.
 2. Install this bundle, **restart DSH**, open a **new conversation**.
-3. Use the `mcp__eve-static-map__*` tools — exactly the planner's 30-tool
+3. Use the `mcp__eve-static-map__*` tools — exactly the planner's 32-tool
    catalog; this bundle adds none.
 
-Ask naturally: `Jita 在哪？`, `Jita 到 Amarr 怎么走？`, `把 1DQ1-A 标成红色危险`,
-`现在有哪些虫洞？`, `加一条 1DQ1-A 到 NOL-M9 的虫洞`.
+Ask naturally: `Jita 在哪？`, `Jita 到 Amarr 怎么走？`, `从 Jita 经 Perimeter 到 1DQ1-A`,
+`把 1DQ1-A 标成红色危险`, `现在有哪些虫洞？`, `加一条 1DQ1-A 到 NOL-M9 的虫洞`,
+`把 Delve Move 任务里的普通路线发送到 EVE，角色是 Alice`.
 
 Wormhole AI access is intentionally limited (list + create only; removal is a
-manual action in Wormhole Manager or the system right-click menu), and
+manual action in Wormhole Manager or the system right-click menu),
 `useWormholes`/`useAnsiblex` route options apply only when the user asks for
-that edge type.
+that edge type, and sending navigation to EVE happens only after an explicit
+request that identifies one Mission Normal route and one character (manual
+drafts and Capital routes are never sent).
 
 ### When the planner is not running
 

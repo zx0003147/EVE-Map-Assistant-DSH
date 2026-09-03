@@ -1,7 +1,7 @@
 {
   "name": "eve-map-assistant-dsh",
-  "version": "0.3.0",
-  "description": "DeepSeek Harness (DSH) profile bundle for the EVE Static Map Planner MCP bridge. Injects one streamable-http MCP client (id: mcp-eve-map) pointing at http://127.0.0.1:27892/mcp and surfaces map tools to the model as mcp__eve-static-map__*. Compatible with EVE Map Assistant Plugin 0.6.0 / EVE Static Map Planner 1.1.0 (30 tools incl. Wormholes).",
+  "version": "0.4.0",
+  "description": "DeepSeek Harness (DSH) profile bundle for the EVE Static Map Planner MCP bridge. Injects one streamable-http MCP client (id: mcp-eve-map) pointing at http://127.0.0.1:27892/mcp and surfaces map tools to the model as mcp__eve-static-map__*. Compatible with EVE Map Assistant Plugin 0.7.0 / EVE Static Map Planner 1.2.0 (32 tools incl. Wormholes, Waypoint routes, authorized Mission navigation sending to EVE).",
   "keywords": [
     "dsh",
     "dsh-bundle",
@@ -9,6 +9,8 @@
     "eve-static-map-planner",
     "eve-map-assistant",
     "wormhole",
+    "waypoint",
+    "navigation",
     "mcp"
   ],
   "type": "module",
